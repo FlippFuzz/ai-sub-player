@@ -12,6 +12,9 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* Include YouTube types */
+    "types": ["youtube"],
+
     /* Linting / Safety */
     "strict": true,
     "noUnusedLocals": true,

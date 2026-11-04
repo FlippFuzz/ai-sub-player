@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>AI Sub Player</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
@@ -10,12 +11,153 @@
     <div id="app">
       <header class="header">
         <h1>AI Sub Player</h1>
+        <div id="video-header-info" style="font-size: 0.9rem; color: #94a3b8;"></div>
       </header>
-      <main id="player-container">
-        <!-- Player shell mounts here in Turn 2 -->
-        <p style="text-align: center; color: #888;">Player initializing...</p>
+
+      <main id="main-container">
+        <!-- Input Panel -->
+        <section class="input-panel">
+          <form id="video-form" class="input-row">
+            <input
+              type="text"
+              id="youtube-url-input"
+              class="input-field"
+              placeholder="YouTube URL or Video ID"
+              autocomplete="off"
+            />
+            <button type="submit" class="btn">Load Video</button>
+          </form>
+
+          <!-- Track Selector Row -->
+          <div id="track-selector-row" class="input-row" style="display: none; align-items: center;">
+            <label for="track-select" style="font-size: 0.85rem; color: #94a3b8; font-weight: 500;">
+              Subtitle Track:
+            </label>
+            <select id="track-select" class="input-field" style="cursor: pointer;"></select>
+          </div>
+
+          <!-- Manual SRT Row -->
+          <form id="srt-form" class="input-row">
+            <input
+              type="text"
+              id="srt-url-input"
+              class="input-field"
+              placeholder="Manual SRT URL (raw link)"
+              autocomplete="off"
+            />
+            <button type="submit" class="btn">Load SRT</button>
+
+            <label class="btn btn-secondary file-input-wrapper">
+              <span>Choose .srt File</span>
+              <input type="file" id="srt-file-input" accept=".srt" />
+            </label>
+          </form>
+          <div id="srt-status" style="font-size: 0.85rem; color: #94a3b8;">No subtitles loaded.</div>
+        </section>
+
+        <!-- Player Theater Wrapper -->
+        <div id="player-wrapper" class="player-wrapper">
+          <div id="player-placeholder" class="player-placeholder">
+            Enter a YouTube video link above to begin.
+          </div>
+
+          <div id="yt-player-target"></div>
+
+          <!-- Subtitle Overlay Container with Top and Bottom slots -->
+          <div id="subtitle-overlay" class="subtitle-overlay-container">
+            <div id="subtitle-top" class="subtitle-slot subtitle-slot-top"></div>
+            <div id="subtitle-bottom" class="subtitle-slot subtitle-slot-bottom"></div>
+          </div>
+
+          <button id="fullscreen-btn" class="fullscreen-btn" title="Toggle Fullscreen" type="button">
+            <svg viewBox="0 0 24 24" id="fs-icon">
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Subtitle Appearance Drawer -->
+        <section class="settings-section">
+          <div id="settings-toggle" class="settings-header">
+            <h3><span>⚙️</span> Subtitle Appearance</h3>
+            <span id="settings-arrow" style="font-size: 0.8rem; color: #94a3b8;">▲ Collapse</span>
+          </div>
+
+          <div id="settings-body" class="settings-body">
+            <!-- Display Layout Selector -->
+            <div class="setting-item" style="grid-column: 1 / -1;">
+              <label class="setting-label">
+                <span>Display Layout</span>
+              </label>
+              <select id="input-display-mode" class="input-field" style="cursor: pointer;">
+                <option value="both-bottom">Both at Bottom (Default)</option>
+                <option value="split-og-top">Split (Original Top / English Bottom)</option>
+                <option value="split-en-top">Split (English Top / Original Bottom)</option>
+                <option value="original-only">Original Language Only</option>
+                <option value="english-only">English Translation Only</option>
+              </select>
+            </div>
+
+            <!-- Font Size -->
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Font Size (Relative)</span>
+                <span id="val-font-size" class="setting-value">100%</span>
+              </label>
+              <input type="range" id="input-font-size" min="0.5" max="2.0" step="0.05" value="1.0" />
+            </div>
+
+            <!-- Background Opacity -->
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Box Opacity</span>
+                <span id="val-bg-opacity" class="setting-value">75%</span>
+              </label>
+              <input type="range" id="input-bg-opacity" min="0" max="1" step="0.05" value="0.75" />
+            </div>
+
+            <!-- Bottom Position -->
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Bottom Position</span>
+                <span id="val-bottom-offset" class="setting-value">28px</span>
+              </label>
+              <input type="range" id="input-bottom-offset" min="10" max="80" step="2" value="28" />
+            </div>
+
+            <!-- Text Color -->
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Text Color</span>
+                <span id="val-text-color" class="setting-value">#ffffff</span>
+              </label>
+              <div class="color-input-wrapper">
+                <input type="color" id="input-text-color" value="#ffffff" />
+              </div>
+            </div>
+
+            <!-- Background Color -->
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Box Color</span>
+                <span id="val-bg-color" class="setting-value">#000000</span>
+              </label>
+              <div class="color-input-wrapper">
+                <input type="color" id="input-bg-color" value="#000000" />
+              </div>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="setting-item" style="justify-content: flex-end;">
+              <button id="btn-reset-settings" type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;">
+                Reset Defaults
+              </button>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
+
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

@@ -11,3 +11,8 @@ export interface SubtitleCue {
   end: number // in seconds
   text: string
 }
+
+export interface SubtitleTrack {
+  name: string
+  path: string
+}

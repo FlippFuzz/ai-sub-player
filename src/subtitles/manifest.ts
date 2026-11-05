@@ -1,3 +1,5 @@
+import { SubtitleTrack } from "../types"
+
 export interface VideoMetaManifest {
   video_id?: string
   uploader?: string
@@ -5,12 +7,12 @@ export interface VideoMetaManifest {
   title?: string
   source_type?: string
   timestamp?: number
-  subtitles?: string[]
+  subtitles?: SubtitleTrack[]
 }
 
 export interface LoadedManifestResult {
   manifest: VideoMetaManifest | null
-  subtitles: string[]
+  subtitles: SubtitleTrack[]
   baseUrl: string
 }
 
@@ -19,8 +21,7 @@ const DEFAULT_BRANCH = "main"
 
 /**
  * Builds a properly encoded raw.githubusercontent.com URL.
- * Encodes each path segment (spaces -> %20, brackets -> %5B/%5D, unicode)
- * while preserving directory slashes.
+ * Encodes each path segment while preserving directory slashes.
  */
 export function buildRawSubtitleUrl(
   baseUrl: string,
@@ -35,7 +36,7 @@ export function buildRawSubtitleUrl(
 
 /**
  * Fetches video_meta.json from the showcase repo.
- * Gracefully handles 404s, missing files, or missing subtitles arrays without crashing.
+ * If the schema changes or subtitles cannot be located, returns an empty array.
  */
 export async function fetchVideoManifest(
   uploader: string,
@@ -63,9 +64,20 @@ export async function fetchVideoManifest(
     }
 
     const manifest = data as VideoMetaManifest
-    const rawList = Array.isArray(manifest.subtitles) ? manifest.subtitles : []
-    const subtitles = rawList.filter(
-      (s): s is string => typeof s === "string" && s.trim().length > 0,
+
+    // If a newer schema version changes or removes the subtitles array, treat as 0 subtitles
+    if (!Array.isArray(manifest.subtitles)) {
+      return { manifest, subtitles: [], baseUrl }
+    }
+
+    // Only collect valid { name, path } track objects
+    const subtitles = manifest.subtitles.filter(
+      (s): s is SubtitleTrack =>
+        Boolean(s) &&
+        typeof s.name === "string" &&
+        typeof s.path === "string" &&
+        s.name.trim().length > 0 &&
+        s.path.trim().length > 0,
     )
 
     return { manifest, subtitles, baseUrl }

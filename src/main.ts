@@ -14,7 +14,7 @@ import {
   SubtitleDisplayMode,
 } from "./settings/manager"
 import { fetchVideoManifest, buildRawSubtitleUrl } from "./subtitles/manifest"
-import { rankSubtitleTracks, SubtitleTrack } from "./subtitles/track"
+import { SubtitleTrack } from "./types"
 
 const playerWrapper = document.getElementById("player-wrapper") as HTMLElement
 const placeholder = document.getElementById(
@@ -153,7 +153,7 @@ syncSettingsUi(settingsManager.getSettings())
 inputDisplayMode?.addEventListener("change", () => {
   const mode = inputDisplayMode.value as SubtitleDisplayMode
   settingsManager.update({ displayMode: mode })
-  synchronizer.forceRefresh() // Immediately updates on-screen subtitle layout
+  synchronizer.forceRefresh()
 })
 
 inputFontSize?.addEventListener("input", () => {
@@ -264,9 +264,9 @@ async function selectTrackByIndex(index: number): Promise<void> {
   const track = currentTracks[index]
   if (!track || !currentBaseUrl) return
 
-  const fullUrl = buildRawSubtitleUrl(currentBaseUrl, track.rawPath)
-  setQueryParam("track", track.modelCode)
-  await loadSubtitlesFromUrl(fullUrl, track.label)
+  const fullUrl = buildRawSubtitleUrl(currentBaseUrl, track.path)
+  setQueryParam("track", track.name)
+  await loadSubtitlesFromUrl(fullUrl, track.name)
 }
 
 async function initializeFromShowcase(
@@ -297,24 +297,26 @@ async function initializeFromShowcase(
     return
   }
 
-  currentTracks = rankSubtitleTracks(subtitles)
+  currentTracks = subtitles
 
   if (trackSelect) {
     trackSelect.innerHTML = ""
     currentTracks.forEach((t, idx) => {
       const opt = document.createElement("option")
       opt.value = idx.toString()
-      opt.textContent = `${t.label}${idx === 0 ? " ★ (Default)" : ""}`
+      opt.textContent = `${t.name}${idx === 0 ? " ★ (Default)" : ""}`
       trackSelect.appendChild(opt)
     })
   }
 
   if (trackSelectorRow) trackSelectorRow.style.display = "flex"
 
+  // First item is default (index 0) unless an exact track name match was passed in the query param
   let selectedIdx = 0
   if (requestedTrack) {
+    const req = requestedTrack.toLowerCase()
     const foundIdx = currentTracks.findIndex(
-      (t) => t.modelCode === requestedTrack.toLowerCase(),
+      (t) => t.name.toLowerCase() === req,
     )
     if (foundIdx !== -1) selectedIdx = foundIdx
   }

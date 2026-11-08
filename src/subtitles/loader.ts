@@ -3,7 +3,7 @@
  * https://github.com/user/repo/blob/branch/path/sub.srt
  * -> https://raw.githubusercontent.com/user/repo/branch/path/sub.srt
  */
-export function normalizeSrtUrl(inputUrl: string): string {
+function normalizeSrtUrl(inputUrl: string): string {
   const trimmed = inputUrl.trim()
   const githubBlobRegex =
     /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/

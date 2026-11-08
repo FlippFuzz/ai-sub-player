@@ -7,7 +7,7 @@ import { SubtitleCue } from "../types"
  * - 01:23.450
  * Returns time in seconds (float).
  */
-export function parseSrtTimestamp(timestampStr: string): number {
+function parseSrtTimestamp(timestampStr: string): number {
   const normalized = timestampStr.trim().replace(",", ".")
   const parts = normalized.split(":")
 
@@ -29,15 +29,8 @@ export function parseSrtTimestamp(timestampStr: string): number {
  * Identifies if a cue is an embedded ai-sub metadata header rather than real dialogue.
  * ai-sub stores a 1ms (0.001s) escaped JSON configuration block at the very beginning of the file.
  */
-export function isMetadataCue(
-  start: number,
-  end: number,
-  text: string,
-): boolean {
-  // Check 1: ai-sub embeds headers with a 1ms duration (end - start <= 0.01s) at 0:00
+function isMetadataCue(start: number, end: number, text: string): boolean {
   const isSuperShortHeader = start < 0.1 && end - start < 0.05
-
-  // Check 2: Content signature check (contains escaped JSON settings, prompt versions, or ai-sub tags)
   const hasMetadataSignature =
     text.includes('"ai_sub_version"') ||
     text.includes('"settings"') ||
@@ -88,7 +81,6 @@ export function parseSrt(rawContent: string): SubtitleCue[] {
     const textLines = lines.slice(timeLineIdx + 1)
     const text = textLines.join("\n").trim()
 
-    // Only add if it is valid speech and NOT an archival metadata header
     if (text && end > start && !isMetadataCue(start, end, text)) {
       cues.push({
         id: cueId,

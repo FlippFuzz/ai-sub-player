@@ -1,4 +1,4 @@
-export function isFullscreen(): boolean {
+function isFullscreen(): boolean {
   const doc = document as Document & {
     webkitFullscreenElement?: Element
   }

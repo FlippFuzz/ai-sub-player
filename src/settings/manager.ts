@@ -10,22 +10,22 @@ export interface SubtitleStyleSettings {
   textColor: string
   bgColor: string
   bgOpacity: number
-  bottomOffset: number
+  edgeOffset: number
   displayMode: SubtitleDisplayMode
 }
 
-export const DEFAULT_SETTINGS: SubtitleStyleSettings = {
+const DEFAULT_SETTINGS: SubtitleStyleSettings = {
   fontScale: 1.0,
   textColor: "#ffffff",
   bgColor: "#000000",
   bgOpacity: 0.75,
-  bottomOffset: 28,
+  edgeOffset: 0,
   displayMode: "both-bottom",
 }
 
 const STORAGE_KEY = "ai_sub_player_settings_v3"
 
-export function hexToRgba(hex: string, alpha: number): string {
+function hexToRgba(hex: string, alpha: number): string {
   const cleanHex = hex.replace("#", "")
   const r = parseInt(cleanHex.substring(0, 2), 16) || 0
   const g = parseInt(cleanHex.substring(2, 4), 16) || 0
@@ -65,7 +65,17 @@ export class SettingsManager {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        return { ...DEFAULT_SETTINGS, ...parsed }
+        // Backward compatibility: migrate bottomOffset if edgeOffset isn't saved yet
+        const edgeOffset =
+          parsed.edgeOffset ??
+          parsed.bottomOffset ??
+          DEFAULT_SETTINGS.edgeOffset
+
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          edgeOffset,
+        }
       }
     } catch (err) {
       console.warn("Could not load saved subtitle settings:", err)
@@ -89,9 +99,10 @@ export class SettingsManager {
     )
     this.container.style.setProperty("--sub-color", this.settings.textColor)
     this.container.style.setProperty("--sub-bg", bgRgba)
+    // Applies edge offset equally to both top and bottom subtitle slots
     this.container.style.setProperty(
-      "--sub-bottom-offset",
-      `${this.settings.bottomOffset}px`,
+      "--sub-edge-offset",
+      `${this.settings.edgeOffset}px`,
     )
   }
 }

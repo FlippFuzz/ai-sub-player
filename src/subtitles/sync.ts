@@ -1,7 +1,7 @@
 import { SubtitleCue } from "../types"
 import { SubtitleDisplayMode } from "../settings/manager"
 
-export interface CueSplit {
+interface CueSplit {
   original: string
   english: string
   isSingleLine: boolean
@@ -10,7 +10,7 @@ export interface CueSplit {
 /**
  * Splits raw multi-line cue text into original language and English translation.
  */
-export function splitCueText(rawText: string): CueSplit {
+function splitCueText(rawText: string): CueSplit {
   const lines = rawText
     .split("\n")
     .map((l) => l.trim())
@@ -24,7 +24,6 @@ export function splitCueText(rawText: string): CueSplit {
     return { original: lines[0], english: lines[0], isSingleLine: true }
   }
 
-  // Check if line 0 has Japanese/CJK characters and line 1 has English/Latin
   const hasCjk = (str: string) =>
     /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str)
 
@@ -43,7 +42,6 @@ export function splitCueText(rawText: string): CueSplit {
     }
   }
 
-  // Standard fallback: line 0 is original, line 1+ is English translation
   return {
     original: lines[0],
     english: lines.slice(1).join("\n"),
@@ -161,7 +159,6 @@ export class SubtitleSynchronizer {
     switch (mode) {
       case "split-og-top":
         if (isSingleLine) {
-          // If only 1 line exists, keep it at bottom rather than duplicating
           bottomText = original
         } else {
           topText = original
@@ -188,7 +185,7 @@ export class SubtitleSynchronizer {
 
       case "both-bottom":
       default:
-        bottomText = rawText // Original on top, English on bottom, both stacked at bottom
+        bottomText = rawText
         break
     }
 

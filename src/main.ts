@@ -54,9 +54,7 @@ const subtitleBottom = document.getElementById("subtitle-bottom") as HTMLElement
 const fullscreenBtn = document.getElementById(
   "fullscreen-btn",
 ) as HTMLButtonElement | null
-const fsIcon = document.getElementById(
-  "fs-icon",
-) as unknown as SVGElement | null
+const fsIcon = document.getElementById("fs-icon")
 
 // Settings UI
 const settingsToggle = document.getElementById(
@@ -84,11 +82,11 @@ const inputBgOpacity = document.getElementById(
 const valBgOpacity = document.getElementById(
   "val-bg-opacity",
 ) as HTMLElement | null
-const inputBottomOffset = document.getElementById(
-  "input-bottom-offset",
+const inputEdgeOffset = document.getElementById(
+  "input-edge-offset",
 ) as HTMLInputElement | null
-const valBottomOffset = document.getElementById(
-  "val-bottom-offset",
+const valEdgeOffset = document.getElementById(
+  "val-edge-offset",
 ) as HTMLElement | null
 const inputTextColor = document.getElementById(
   "input-text-color",
@@ -134,9 +132,9 @@ function syncSettingsUi(settings: SubtitleStyleSettings): void {
     inputBgOpacity.value = settings.bgOpacity.toString()
     valBgOpacity.textContent = `${Math.round(settings.bgOpacity * 100)}%`
   }
-  if (inputBottomOffset && valBottomOffset) {
-    inputBottomOffset.value = settings.bottomOffset.toString()
-    valBottomOffset.textContent = `${settings.bottomOffset}px`
+  if (inputEdgeOffset && valEdgeOffset) {
+    inputEdgeOffset.value = settings.edgeOffset.toString()
+    valEdgeOffset.textContent = `${settings.edgeOffset}px`
   }
   if (inputTextColor && valTextColor) {
     inputTextColor.value = settings.textColor
@@ -168,10 +166,10 @@ inputBgOpacity?.addEventListener("input", () => {
   settingsManager.update({ bgOpacity: val })
 })
 
-inputBottomOffset?.addEventListener("input", () => {
-  const val = parseInt(inputBottomOffset.value, 10)
-  if (valBottomOffset) valBottomOffset.textContent = `${val}px`
-  settingsManager.update({ bottomOffset: val })
+inputEdgeOffset?.addEventListener("input", () => {
+  const val = parseInt(inputEdgeOffset.value, 10)
+  if (valEdgeOffset) valEdgeOffset.textContent = `${val}px`
+  settingsManager.update({ edgeOffset: val })
 })
 
 inputTextColor?.addEventListener("input", () => {
@@ -311,7 +309,6 @@ async function initializeFromShowcase(
 
   if (trackSelectorRow) trackSelectorRow.style.display = "flex"
 
-  // First item is default (index 0) unless an exact track name match was passed in the query param
   let selectedIdx = 0
   if (requestedTrack) {
     const req = requestedTrack.toLowerCase()
@@ -374,7 +371,6 @@ async function initApp(): Promise<void> {
   const directSrt = getQueryParam("srt")
 
   if (videoId) {
-    if (urlInput) urlInput.value = videoId
     await playVideo(videoId)
 
     if (uploader) {

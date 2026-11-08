@@ -1,6 +1,6 @@
 import { SubtitleTrack } from "../types"
 
-export interface VideoMetaManifest {
+interface VideoMetaManifest {
   video_id?: string
   uploader?: string
   channel_name?: string
@@ -10,7 +10,7 @@ export interface VideoMetaManifest {
   subtitles?: SubtitleTrack[]
 }
 
-export interface LoadedManifestResult {
+interface LoadedManifestResult {
   manifest: VideoMetaManifest | null
   subtitles: SubtitleTrack[]
   baseUrl: string
@@ -65,12 +65,10 @@ export async function fetchVideoManifest(
 
     const manifest = data as VideoMetaManifest
 
-    // If a newer schema version changes or removes the subtitles array, treat as 0 subtitles
     if (!Array.isArray(manifest.subtitles)) {
       return { manifest, subtitles: [], baseUrl }
     }
 
-    // Only collect valid { name, path } track objects
     const subtitles = manifest.subtitles.filter(
       (s): s is SubtitleTrack =>
         Boolean(s) &&

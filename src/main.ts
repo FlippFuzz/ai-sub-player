@@ -16,17 +16,26 @@ import {
 import { fetchVideoManifest, buildRawSubtitleUrl } from "./subtitles/manifest"
 import { SubtitleTrack } from "./types"
 
+const appContainer = document.getElementById("app") as HTMLElement
+const playerStage = document.getElementById("player-stage") as HTMLElement
 const playerWrapper = document.getElementById("player-wrapper") as HTMLElement
+const interactionSensor = document.getElementById(
+  "interaction-sensor",
+) as HTMLElement | null
+const sidebarBackdrop = document.getElementById(
+  "sidebar-backdrop",
+) as HTMLElement | null
 const placeholder = document.getElementById(
   "player-placeholder",
 ) as HTMLElement | null
+
+// Forms & Inputs
 const videoForm = document.getElementById(
   "video-form",
 ) as HTMLFormElement | null
 const urlInput = document.getElementById(
   "youtube-url-input",
 ) as HTMLInputElement | null
-
 const srtForm = document.getElementById("srt-form") as HTMLFormElement | null
 const srtUrlInput = document.getElementById(
   "srt-url-input",
@@ -35,9 +44,6 @@ const srtFileInput = document.getElementById(
   "srt-file-input",
 ) as HTMLInputElement | null
 const srtStatus = document.getElementById("srt-status") as HTMLElement | null
-const videoHeaderInfo = document.getElementById(
-  "video-header-info",
-) as HTMLElement | null
 
 // Track Selector UI
 const trackSelectorRow = document.getElementById(
@@ -51,12 +57,19 @@ const trackSelect = document.getElementById(
 const subtitleTop = document.getElementById("subtitle-top") as HTMLElement
 const subtitleBottom = document.getElementById("subtitle-bottom") as HTMLElement
 
+// Floating Action Buttons
+const panelToggleBtn = document.getElementById(
+  "panel-toggle-btn",
+) as HTMLButtonElement | null
+const panelCloseBtn = document.getElementById(
+  "panel-close-btn",
+) as HTMLButtonElement | null
 const fullscreenBtn = document.getElementById(
   "fullscreen-btn",
 ) as HTMLButtonElement | null
 const fsIcon = document.getElementById("fs-icon")
 
-// Settings UI
+// Sidebar Accordions
 const settingsToggle = document.getElementById(
   "settings-toggle",
 ) as HTMLElement | null
@@ -67,6 +80,17 @@ const settingsArrow = document.getElementById(
   "settings-arrow",
 ) as HTMLElement | null
 
+const sourcesToggle = document.getElementById(
+  "sources-toggle",
+) as HTMLElement | null
+const sourcesBody = document.getElementById(
+  "sources-body",
+) as HTMLElement | null
+const sourcesArrow = document.getElementById(
+  "sources-arrow",
+) as HTMLElement | null
+
+// Settings Controls
 const inputDisplayMode = document.getElementById(
   "input-display-mode",
 ) as HTMLSelectElement | null
@@ -114,7 +138,107 @@ const synchronizer = new SubtitleSynchronizer(
 
 let currentTracks: SubtitleTrack[] = []
 let currentBaseUrl = ""
+let isVideoPlaying = false
 
+// --- Sidebar Collapse / Expand ---
+const SIDEBAR_STORAGE_KEY = "ai_sub_panel_collapsed_v1"
+
+function setSidebarCollapsed(collapsed: boolean): void {
+  if (collapsed) {
+    appContainer.classList.add("panel-collapsed")
+  } else {
+    appContainer.classList.remove("panel-collapsed")
+  }
+  try {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+// Restore saved sidebar preference (default to open)
+try {
+  const savedState = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+  if (savedState !== null) {
+    setSidebarCollapsed(JSON.parse(savedState))
+  }
+} catch {
+  // Ignore
+}
+
+panelToggleBtn?.addEventListener("click", () => {
+  const isCurrentlyCollapsed =
+    appContainer.classList.contains("panel-collapsed")
+  setSidebarCollapsed(!isCurrentlyCollapsed)
+})
+
+panelCloseBtn?.addEventListener("click", () => {
+  setSidebarCollapsed(true)
+})
+
+// Tap outside backdrop on tiny windows/drawers to close
+sidebarBackdrop?.addEventListener("click", () => {
+  setSidebarCollapsed(true)
+})
+
+// --- 5-Second Inactivity Fade ---
+const IDLE_TIMEOUT_MS = 5000
+let idleTimer: number | null = null
+
+function resetIdleTimer(): void {
+  playerStage.classList.remove("user-idle")
+
+  if (idleTimer !== null) {
+    window.clearTimeout(idleTimer)
+    idleTimer = null
+  }
+
+  // Only fade when video is actively playing
+  if (isVideoPlaying) {
+    idleTimer = window.setTimeout(() => {
+      playerStage.classList.add("user-idle")
+    }, IDLE_TIMEOUT_MS)
+  }
+}
+
+playerStage.addEventListener("mousemove", resetIdleTimer)
+playerStage.addEventListener("pointermove", resetIdleTimer)
+playerStage.addEventListener("touchstart", resetIdleTimer, { passive: true })
+playerStage.addEventListener("click", resetIdleTimer)
+
+// Interaction sensor catches movements over iframe when buttons are idle
+interactionSensor?.addEventListener("mousemove", resetIdleTimer)
+interactionSensor?.addEventListener("pointermove", resetIdleTimer)
+interactionSensor?.addEventListener("touchstart", resetIdleTimer, {
+  passive: true,
+})
+interactionSensor?.addEventListener("click", resetIdleTimer)
+
+// Window focus change (e.g. clicking into YouTube player) wakes controls
+window.addEventListener("blur", () => {
+  resetIdleTimer()
+})
+
+// --- Settings Accordion ---
+let settingsExpanded = true
+settingsToggle?.addEventListener("click", () => {
+  settingsExpanded = !settingsExpanded
+  if (settingsBody)
+    settingsBody.style.display = settingsExpanded ? "flex" : "none"
+  if (settingsArrow)
+    settingsArrow.textContent = settingsExpanded ? "▲ Collapse" : "▼ Expand"
+})
+
+// --- Input Sources Accordion (Collapsed by default) ---
+let sourcesExpanded = false
+sourcesToggle?.addEventListener("click", () => {
+  sourcesExpanded = !sourcesExpanded
+  if (sourcesBody) sourcesBody.style.display = sourcesExpanded ? "flex" : "none"
+  if (sourcesArrow)
+    sourcesArrow.textContent = sourcesExpanded ? "▲ Collapse" : "▼ Expand"
+})
+
+// --- Status Message Helper ---
 function setStatus(text: string, color: string = "#94a3b8"): void {
   if (srtStatus) {
     srtStatus.textContent = text
@@ -122,6 +246,7 @@ function setStatus(text: string, color: string = "#94a3b8"): void {
   }
 }
 
+// --- Sync Settings UI ---
 function syncSettingsUi(settings: SubtitleStyleSettings): void {
   if (inputDisplayMode) inputDisplayMode.value = settings.displayMode
   if (inputFontSize && valFontSize) {
@@ -190,24 +315,26 @@ btnResetSettings?.addEventListener("click", () => {
   synchronizer.forceRefresh()
 })
 
-let settingsExpanded = true
-settingsToggle?.addEventListener("click", () => {
-  settingsExpanded = !settingsExpanded
-  if (settingsBody)
-    settingsBody.style.display = settingsExpanded ? "grid" : "none"
-  if (settingsArrow)
-    settingsArrow.textContent = settingsExpanded ? "▲ Collapse" : "▼ Expand"
-})
-
+// --- Player State Listener ---
 player.onStateChange((state) => {
-  if (state === YT.PlayerState.PLAYING) {
+  isVideoPlaying = state === YT.PlayerState.PLAYING
+
+  if (isVideoPlaying) {
     synchronizer.start()
+    resetIdleTimer()
   } else {
     synchronizer.stop()
     synchronizer.update()
+    // When paused or ended, keep controls visible
+    playerStage.classList.remove("user-idle")
+    if (idleTimer !== null) {
+      window.clearTimeout(idleTimer)
+      idleTimer = null
+    }
   }
 })
 
+// --- Video & Subtitle Loading ---
 async function playVideo(rawInput: string): Promise<void> {
   const videoId = extractYouTubeVideoId(rawInput)
   if (!videoId) {
@@ -234,7 +361,7 @@ async function loadSubtitlesFromUrl(
     const rawSrt = await loadSrtFromUrl(url)
     const cues = parseSrt(rawSrt)
     synchronizer.setCues(cues)
-    setStatus(`Active Subtitle: ${label} (${cues.length} cues)`, "#86efac")
+    setStatus("")
   } catch (err) {
     console.error(err)
     setStatus(`Error loading subtitle: ${(err as Error).message}`, "#fca5a5")
@@ -248,10 +375,7 @@ async function loadSubtitlesFromFile(file: File): Promise<void> {
     const cues = parseSrt(rawSrt)
     synchronizer.setCues(cues)
     if (trackSelectorRow) trackSelectorRow.style.display = "none"
-    setStatus(
-      `Active Subtitle: "${file.name}" (${cues.length} cues)`,
-      "#86efac",
-    )
+    setStatus("")
   } catch (err) {
     console.error(err)
     setStatus(`Error reading file: ${(err as Error).message}`, "#fca5a5")
@@ -282,16 +406,13 @@ async function initializeFromShowcase(
 
   if (manifest && manifest.title) {
     document.title = `${manifest.title} - AI Sub Player`
-    if (videoHeaderInfo) {
-      videoHeaderInfo.textContent = `${manifest.channel_name || uploader} • ${manifest.title}`
-    }
   }
 
   if (subtitles.length === 0) {
     if (trackSelectorRow) trackSelectorRow.style.display = "none"
     currentTracks = []
     synchronizer.clearCues()
-    setStatus("No subtitle tracks found in showcase for this video.", "#94a3b8")
+    setStatus("No showcase subtitles found for this video.", "#94a3b8")
     return
   }
 
@@ -302,12 +423,12 @@ async function initializeFromShowcase(
     currentTracks.forEach((t, idx) => {
       const opt = document.createElement("option")
       opt.value = idx.toString()
-      opt.textContent = `${t.name}${idx === 0 ? " ★ (Default)" : ""}`
+      opt.textContent = t.name
       trackSelect.appendChild(opt)
     })
   }
 
-  if (trackSelectorRow) trackSelectorRow.style.display = "flex"
+  if (trackSelectorRow) trackSelectorRow.style.display = "block"
 
   let selectedIdx = 0
   if (requestedTrack) {
@@ -348,8 +469,9 @@ srtFileInput?.addEventListener("change", () => {
   if (file) loadSubtitlesFromFile(file)
 })
 
+// Fullscreen is requested on appContainer (#app) so controls work side-by-side in fullscreen
 fullscreenBtn?.addEventListener("click", () => {
-  toggleFullscreen(playerWrapper)
+  toggleFullscreen(appContainer)
 })
 
 onFullscreenChange((isActive) => {
@@ -364,6 +486,7 @@ onFullscreenChange((isActive) => {
   }
 })
 
+// --- App Initialization ---
 async function initApp(): Promise<void> {
   const videoId = getQueryParam("v")
   const uploader = getQueryParam("uploader")

@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: SubtitleStyleSettings = {
   fontScale: 1.0,
   textColor: "#ffffff",
   bgColor: "#000000",
-  bgOpacity: 0.75,
+  bgOpacity: 0.25,
   edgeOffset: 0,
   displayMode: "both-bottom",
 }

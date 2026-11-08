@@ -9,153 +9,205 @@
   </head>
   <body>
     <div id="app">
-      <header class="header">
-        <h1>AI Sub Player</h1>
-        <div id="video-header-info" style="font-size: 0.9rem; color: #94a3b8;"></div>
-      </header>
-
-      <main id="main-container">
-        <!-- Input Panel -->
-        <section class="input-panel">
-          <form id="video-form" class="input-row">
-            <input
-              type="text"
-              id="youtube-url-input"
-              class="input-field"
-              placeholder="YouTube URL or Video ID"
-              autocomplete="off"
-            />
-            <button type="submit" class="btn">Load Video</button>
-          </form>
-
-          <!-- Track Selector Row -->
-          <div id="track-selector-row" class="input-row" style="display: none; align-items: center;">
-            <label for="track-select" style="font-size: 0.85rem; color: #94a3b8; font-weight: 500;">
-              Subtitle Track:
-            </label>
-            <select id="track-select" class="input-field" style="cursor: pointer;"></select>
-          </div>
-
-          <!-- Manual SRT Row -->
-          <form id="srt-form" class="input-row">
-            <input
-              type="text"
-              id="srt-url-input"
-              class="input-field"
-              placeholder="Manual SRT URL (raw link)"
-              autocomplete="off"
-            />
-            <button type="submit" class="btn">Load SRT</button>
-
-            <label class="btn btn-secondary file-input-wrapper">
-              <span>Choose .srt File</span>
-              <input type="file" id="srt-file-input" accept=".srt" />
-            </label>
-          </form>
-          <div id="srt-status" style="font-size: 0.85rem; color: #94a3b8;">No subtitles loaded.</div>
-        </section>
-
-        <!-- Player Theater Wrapper -->
+      <!-- Player Stage: Maximized view area -->
+      <main id="player-stage">
         <div id="player-wrapper" class="player-wrapper">
           <div id="player-placeholder" class="player-placeholder">
-            Enter a YouTube video link above to begin.
+            Paste a YouTube URL in the controls panel to begin.
           </div>
 
           <div id="yt-player-target"></div>
 
-          <!-- Subtitle Overlay Container with Top and Bottom slots -->
+          <!-- Interaction Sensor: Catches mouse movements over iframe during idle -->
+          <div id="interaction-sensor" class="interaction-sensor"></div>
+
+          <!-- Subtitle Overlay Container -->
           <div id="subtitle-overlay" class="subtitle-overlay-container">
             <div id="subtitle-top" class="subtitle-slot subtitle-slot-top"></div>
             <div id="subtitle-bottom" class="subtitle-slot subtitle-slot-bottom"></div>
           </div>
 
-          <button id="fullscreen-btn" class="fullscreen-btn" title="Toggle Fullscreen" type="button">
-            <svg viewBox="0 0 24 24" id="fs-icon">
-              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-            </svg>
-          </button>
+          <!-- Bottom-Right Action Cluster (Fades out after 5s of inactivity during playback) -->
+          <div id="player-action-cluster" class="player-action-cluster">
+            <button id="panel-toggle-btn" class="action-btn" title="Toggle Controls &amp; Settings" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h11V6H4zm13 0v12h3V6h-3z"/>
+              </svg>
+              <span>Controls</span>
+            </button>
+
+            <button id="fullscreen-btn" class="action-btn action-btn-icon" title="Toggle Fullscreen" type="button">
+              <svg viewBox="0 0 24 24" id="fs-icon">
+                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Tap-outside backdrop for small screen drawers -->
+      <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+      <!-- Collapsible Side Panel -->
+      <aside id="side-panel">
+        <div class="sidebar-header">
+          <div class="sidebar-branding">
+            <h1>AI Sub Player</h1>
+            <a
+              href="https://github.com/FlippFuzz/ai-sub-player"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="github-link"
+              title="View on GitHub"
+            >
+              <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
+          </div>
+          <button id="panel-close-btn" class="btn-icon" title="Hide Sidebar">✕</button>
         </div>
 
-        <!-- Subtitle Appearance Drawer -->
-        <section class="settings-section">
-          <div id="settings-toggle" class="settings-header">
-            <h3><span>⚙️</span> Subtitle Appearance</h3>
-            <span id="settings-arrow" style="font-size: 0.8rem; color: #94a3b8;">▲ Collapse</span>
-          </div>
+        <div class="sidebar-content">
+          <!-- 1. PRIMARY: Subtitle Track Selection -->
+          <section class="sidebar-section track-section">
+            <h2 class="section-title">Subtitle Track</h2>
+            <div id="track-selector-row" class="track-selector-wrapper" style="display: none;">
+              <select id="track-select" class="input-field track-select-field"></select>
+            </div>
+            <div id="srt-status" class="status-text"></div>
+          </section>
 
-          <div id="settings-body" class="settings-body">
-            <!-- Display Layout Selector -->
-            <div class="setting-item" style="grid-column: 1 / -1;">
-              <label class="setting-label">
-                <span>Display Layout</span>
-              </label>
-              <select id="input-display-mode" class="input-field" style="cursor: pointer;">
-                <option value="both-bottom">Both at Bottom (Default)</option>
-                <option value="split-og-top">Split (Original Top / English Bottom)</option>
-                <option value="split-en-top">Split (English Top / Original Bottom)</option>
-                <option value="original-only">Original Language Only</option>
-                <option value="english-only">English Translation Only</option>
-              </select>
+          <!-- 2. SECONDARY: Appearance Settings (Full-width clean controls) -->
+          <section class="sidebar-section settings-section">
+            <div id="settings-toggle" class="settings-header">
+              <h3><span>⚙️</span> Appearance</h3>
+              <span id="settings-arrow" class="accordion-arrow">▲ Collapse</span>
             </div>
 
-            <!-- Font Size -->
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Font Size (Relative)</span>
-                <span id="val-font-size" class="setting-value">100%</span>
-              </label>
-              <input type="range" id="input-font-size" min="0.5" max="2.0" step="0.05" value="1.0" />
-            </div>
+            <div id="settings-body" class="settings-body">
+              <!-- Display Layout Selector -->
+              <div class="setting-item">
+                <label class="setting-label">
+                  <span>Display Layout</span>
+                </label>
+                <select id="input-display-mode" class="input-field" style="cursor: pointer;">
+                  <option value="both-bottom">Both at Bottom (Default)</option>
+                  <option value="split-og-top">Split (Original Top / English Bottom)</option>
+                  <option value="split-en-top">Split (English Top / Original Bottom)</option>
+                  <option value="original-only">Original Language Only</option>
+                  <option value="english-only">English Translation Only</option>
+                </select>
+              </div>
 
-            <!-- Background Opacity -->
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Box Opacity</span>
-                <span id="val-bg-opacity" class="setting-value">75%</span>
-              </label>
-              <input type="range" id="input-bg-opacity" min="0" max="1" step="0.05" value="0.75" />
-            </div>
+              <!-- Font Size (Full-width) -->
+              <div class="setting-item">
+                <div class="setting-label">
+                  <span>Font Size</span>
+                  <span id="val-font-size" class="setting-value">100%</span>
+                </div>
+                <input type="range" id="input-font-size" min="0.5" max="2.0" step="0.05" value="1.0" />
+              </div>
 
-            <!-- Edge Position (min 0) -->
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Edge Position</span>
-                <span id="val-edge-offset" class="setting-value">24px</span>
-              </label>
-              <input type="range" id="input-edge-offset" min="0" max="80" step="2" value="24" />
-            </div>
+              <!-- Box Opacity (Full-width) -->
+              <div class="setting-item">
+                <div class="setting-label">
+                  <span>Box Opacity</span>
+                  <span id="val-bg-opacity" class="setting-value">75%</span>
+                </div>
+                <input type="range" id="input-bg-opacity" min="0" max="1" step="0.05" value="0.75" />
+              </div>
 
-            <!-- Text Color -->
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Text Color</span>
-                <span id="val-text-color" class="setting-value">#ffffff</span>
-              </label>
-              <div class="color-input-wrapper">
-                <input type="color" id="input-text-color" value="#ffffff" />
+              <!-- Edge Position (Full-width) -->
+              <div class="setting-item">
+                <div class="setting-label">
+                  <span>Edge Position</span>
+                  <span id="val-edge-offset" class="setting-value">24px</span>
+                </div>
+                <input type="range" id="input-edge-offset" min="0" max="80" step="2" value="24" />
+              </div>
+
+              <!-- Color Pickers Row (Side-by-side) -->
+              <div class="color-row">
+                <div class="setting-item">
+                  <div class="setting-label">
+                    <span>Text Color</span>
+                  </div>
+                  <div class="color-input-wrapper">
+                    <input type="color" id="input-text-color" value="#ffffff" />
+                    <span id="val-text-color" class="setting-value">#ffffff</span>
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <div class="setting-label">
+                    <span>Box Color</span>
+                  </div>
+                  <div class="color-input-wrapper">
+                    <input type="color" id="input-bg-color" value="#000000" />
+                    <span id="val-bg-color" class="setting-value">#000000</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reset Button -->
+              <div class="setting-item" style="margin-top: 4px;">
+                <button id="btn-reset-settings" type="button" class="btn btn-secondary btn-sm" style="width: 100%;">
+                  Reset Defaults
+                </button>
               </div>
             </div>
+          </section>
 
-            <!-- Background Color -->
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Box Color</span>
-                <span id="val-bg-color" class="setting-value">#000000</span>
-              </label>
-              <div class="color-input-wrapper">
-                <input type="color" id="input-bg-color" value="#000000" />
+          <!-- 3. TERTIARY / MUTED: Input Sources (Collapsed by default) -->
+          <section class="sidebar-section sources-section">
+            <div id="sources-toggle" class="settings-header">
+              <h3><span>📁</span> Input Sources</h3>
+              <span id="sources-arrow" class="accordion-arrow">▼ Expand</span>
+            </div>
+
+            <div id="sources-body" class="sources-body" style="display: none;">
+              <!-- YouTube Video Input -->
+              <div class="input-stack">
+                <label class="field-label" for="youtube-url-input">YouTube Video</label>
+                <form id="video-form" class="input-stack">
+                  <input
+                    type="text"
+                    id="youtube-url-input"
+                    class="input-field"
+                    placeholder="YouTube URL or Video ID"
+                    autocomplete="off"
+                  />
+                  <button type="submit" class="btn btn-sm">Load Video</button>
+                </form>
+              </div>
+
+              <hr class="section-divider" />
+
+              <!-- Manual SRT URL / File Upload -->
+              <div class="input-stack">
+                <label class="field-label" for="srt-url-input">Manual Subtitle (.srt)</label>
+                <form id="srt-form" class="input-stack">
+                  <input
+                    type="text"
+                    id="srt-url-input"
+                    class="input-field"
+                    placeholder="Direct SRT link"
+                    autocomplete="off"
+                  />
+                  <div class="btn-group">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="flex: 1;">Load URL</button>
+                    <label class="btn btn-secondary btn-sm file-input-wrapper" style="flex: 1; text-align: center;">
+                      <span>Upload .srt</span>
+                      <input type="file" id="srt-file-input" accept=".srt" />
+                    </label>
+                  </div>
+                </form>
               </div>
             </div>
-
-            <!-- Reset Button -->
-            <div class="setting-item" style="justify-content: flex-end;">
-              <button id="btn-reset-settings" type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;">
-                Reset Defaults
-              </button>
-            </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </div>
+      </aside>
     </div>
 
     <script type="module" src="./src/main.ts"></script>

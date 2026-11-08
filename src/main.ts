@@ -193,7 +193,7 @@ function resetIdleTimer(): void {
     idleTimer = null
   }
 
-  // Only fade when video is actively playing
+  // Only set timer to fade if video is actively playing
   if (isVideoPlaying) {
     idleTimer = window.setTimeout(() => {
       playerStage.classList.add("user-idle")
@@ -205,6 +205,10 @@ playerStage.addEventListener("mousemove", resetIdleTimer)
 playerStage.addEventListener("pointermove", resetIdleTimer)
 playerStage.addEventListener("touchstart", resetIdleTimer, { passive: true })
 playerStage.addEventListener("click", resetIdleTimer)
+
+// Global touch/pointer waking for mobile devices
+document.addEventListener("touchstart", resetIdleTimer, { passive: true })
+document.addEventListener("pointerdown", resetIdleTimer, { passive: true })
 
 // Interaction sensor catches movements over iframe when buttons are idle
 interactionSensor?.addEventListener("mousemove", resetIdleTimer)

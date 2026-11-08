@@ -202,7 +202,7 @@ settingsToggle?.addEventListener("click", () => {
 })
 
 player.onStateChange((state) => {
-  if (state === 1) {
+  if (state === YT.PlayerState.PLAYING) {
     synchronizer.start()
   } else {
     synchronizer.stop()

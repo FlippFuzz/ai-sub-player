@@ -1,5 +1,3 @@
-/// <reference types="youtube" />
-
 import { PlayerStateListener } from "../types"
 import {
   getSavedPlaybackPosition,
@@ -47,6 +45,7 @@ export class YouTubePlayerController {
   private isReady = false
   private currentVideoId: string | null = null
   private saveIntervalId: number | null = null
+  private hasStartedPlaying = false
 
   constructor(containerId: string) {
     this.containerId = containerId
@@ -72,19 +71,16 @@ export class YouTubePlayerController {
     }
 
     this.currentVideoId = videoId
+    this.hasStartedPlaying = false
     const startSeconds = getSavedPlaybackPosition(videoId)
 
     await loadYouTubeIframeApi()
 
     if (this.player && this.isReady) {
-      if (startSeconds > 0) {
-        this.player.loadVideoById({
-          videoId,
-          startSeconds,
-        })
-      } else {
-        this.player.loadVideoById(videoId)
-      }
+      this.player.loadVideoById({
+        videoId,
+        startSeconds: startSeconds > 0 ? startSeconds : undefined,
+      })
       return
     }
 
@@ -107,10 +103,6 @@ export class YouTubePlayerController {
         origin,
       }
 
-      if (startSeconds > 0) {
-        playerVars.start = startSeconds
-      }
-
       this.player = new YT.Player(this.containerId, {
         videoId,
         width: "100%",
@@ -119,6 +111,11 @@ export class YouTubePlayerController {
         events: {
           onReady: () => {
             this.isReady = true
+            // Seek on ready without passing playerVars.start into constructor,
+            // avoiding browser blocked-autoplay states and multiple-tap issues.
+            if (startSeconds > 0) {
+              this.player?.seekTo(startSeconds, true)
+            }
             resolve()
           },
           onStateChange: (event: YT.OnStateChangeEvent) => {
@@ -130,23 +127,26 @@ export class YouTubePlayerController {
     })
   }
 
-  private handleStateChange(state: number): void {
-    if (state === 1) {
+  private handleStateChange(state: YT.PlayerState): void {
+    if (state === YT.PlayerState.PLAYING) {
+      this.hasStartedPlaying = true
       // PLAYING: start periodic position saving (every 3 seconds)
       this.startSaveInterval()
     } else {
-      // PAUSED, BUFFERING, CUED, or ENDED: stop interval
+      // Stop interval on any non-playing state
       this.stopSaveInterval()
 
-      if (state === 0) {
+      if (state === YT.PlayerState.ENDED) {
         // ENDED: clear stored position so future playback starts from 0
         if (this.currentVideoId) {
           clearPlaybackPosition(this.currentVideoId)
         }
-      } else {
-        // Paused or buffered: save current progress immediately
+        this.hasStartedPlaying = false
+      } else if (state === YT.PlayerState.PAUSED) {
+        // PAUSED: safe to save progress since user intentionally paused
         this.saveProgress()
       }
+      // Note: We deliberately do NOT save during BUFFERING, UNSTARTED, or CUED
     }
   }
 
@@ -165,11 +165,21 @@ export class YouTubePlayerController {
   }
 
   private saveProgress(): void {
-    if (!this.currentVideoId || !this.player || !this.isReady) return
+    // Never overwrite saved position if playback hasn't started yet in this session
+    if (
+      !this.hasStartedPlaying ||
+      !this.currentVideoId ||
+      !this.player ||
+      !this.isReady
+    ) {
+      return
+    }
     try {
       const currentTime = this.player.getCurrentTime() || 0
       const duration = this.player.getDuration() || 0
-      savePlaybackPosition(this.currentVideoId, currentTime, duration)
+      if (currentTime > 0) {
+        savePlaybackPosition(this.currentVideoId, currentTime, duration)
+      }
     } catch {
       // Player might not be ready or currently destroying
     }
@@ -186,35 +196,6 @@ export class YouTubePlayerController {
       return this.player.getCurrentTime() || 0
     } catch {
       return 0
-    }
-  }
-
-  public getDuration(): number {
-    if (!this.player || !this.isReady) return 0
-    try {
-      return this.player.getDuration() || 0
-    } catch {
-      return 0
-    }
-  }
-
-  public getPlayerState(): number {
-    if (!this.player || !this.isReady) return -1
-    try {
-      return this.player.getPlayerState()
-    } catch {
-      return -1
-    }
-  }
-
-  public destroy(): void {
-    this.stopSaveInterval()
-    this.saveProgress()
-    if (this.player) {
-      this.player.destroy()
-      this.player = null
-      this.isReady = false
-      this.currentVideoId = null
     }
   }
 }

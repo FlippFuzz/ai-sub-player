@@ -1,9 +1,4 @@
-export interface PlayerStateChangeEvent {
-  state: number // YT.PlayerState (-1: unstarted, 0: ended, 1: playing, 2: paused, 3: buffering, 5: cued)
-}
-
-export type PlayerStateListener = (state: number) => void
-export type TimeListener = (currentTime: number) => void
+export type PlayerStateListener = (state: YT.PlayerState) => void
 
 export interface SubtitleCue {
   id: number

@@ -16,6 +16,25 @@ import {
 import { fetchVideoManifest, buildRawSubtitleUrl } from "./subtitles/manifest"
 import { SubtitleTrack } from "./types"
 
+// --- Accurate Mobile/Android Visual Viewport Calculation ---
+function updateAppHeight(): void {
+  // visualViewport accounts for browser address bar and Android navigation bars
+  const visibleHeight = window.visualViewport
+    ? window.visualViewport.height
+    : window.innerHeight
+  document.documentElement.style.setProperty(
+    "--app-height",
+    `${visibleHeight}px`,
+  )
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", updateAppHeight)
+}
+window.addEventListener("resize", updateAppHeight)
+window.addEventListener("orientationchange", updateAppHeight)
+updateAppHeight()
+
 const appContainer = document.getElementById("app") as HTMLElement
 const playerStage = document.getElementById("player-stage") as HTMLElement
 const playerWrapper = document.getElementById("player-wrapper") as HTMLElement

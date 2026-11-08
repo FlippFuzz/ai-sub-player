@@ -7,7 +7,6 @@
   --border-color: #1e293b;
   --accent-color: #38bdf8;
   --accent-hover: #0284c7;
-  /* Fluid responsive width: shrinks down to 230px on small windows, caps at 340px on wide screens */
   --sidebar-width: clamp(230px, 32vw, 340px);
 }
 
@@ -17,34 +16,38 @@
   padding: 0;
 }
 
-body {
+html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
   width: 100vw;
-  height: 100vh;
+  height: 100%;
+  height: var(--app-height, 100dvh);
   overflow: hidden;
 }
 
-/* App Shell: Side-by-Side Flex Layout */
+/* App Shell: Confined strictly within visible screen */
 #app {
   display: flex;
   width: 100vw;
-  height: 100vh;
+  height: 100%;
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
   overflow: hidden;
   background-color: #000;
   position: relative;
 }
 
-/* Container-level Fullscreen */
+/* Fullscreen on root container */
 #app:fullscreen,
 #app:-webkit-full-screen {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: #000;
 }
 
-/* Player Stage: Consumes 100% of remaining viewport space */
+/* Player Stage: Edge-to-edge, no padding */
 #player-stage {
   flex: 1;
   min-width: 0;
@@ -55,25 +58,22 @@ body {
   position: relative;
   background: #000;
   overflow: hidden;
-  transition: all 0.2s ease;
+  container-type: size;
 }
 
-/* Hide mouse cursor when idle during desktop playback */
+/* Hide mouse cursor when idle during playback */
 #player-stage.user-idle {
   cursor: none;
 }
 
-/* 16:9 Canvas: Maximizes cleanly to stage bounds */
+/* 16:9 Canvas: Perfectly contained within visible area without overflowing */
 .player-wrapper {
-  container-type: inline-size;
-  --sub-font-scale: 1;
-  --sub-color: #ffffff;
-  --sub-bg: rgba(0, 0, 0, 0.75);
-  --sub-edge-offset: 24px;
-
   position: relative;
-  width: min(100%, calc(100vh * 16 / 9));
   aspect-ratio: 16 / 9;
+  width: min(100cqw, calc(100cqh * (16 / 9)));
+  height: min(100cqh, calc(100cqw * (9 / 16)));
+  max-width: 100%;
+  max-height: 100%;
   background: #000;
   overflow: hidden;
 }
@@ -87,7 +87,7 @@ iframe {
   color-scheme: dark;
 }
 
-/* Interaction Sensor: Detects mouse movement over iframe when controls are idle */
+/* Interaction Sensor: Detects mouse movement / touch when idle to restore controls */
 .interaction-sensor {
   position: absolute;
   inset: 0;
@@ -116,8 +116,8 @@ iframe {
 /* Action Cluster: Controls + Fullscreen in the Bottom-Right */
 .player-action-cluster {
   position: absolute;
-  bottom: max(14px, env(safe-area-inset-bottom, 14px));
-  right: max(14px, env(safe-area-inset-right, 14px));
+  bottom: 14px;
+  right: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -128,28 +128,11 @@ iframe {
   pointer-events: auto;
 }
 
-/* Desktop fade out after 5s of mouse inactivity */
+/* Fade out after 5s of inactivity during playback on ALL devices */
 #player-stage.user-idle .player-action-cluster {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-
-/* ============================================================
-   TOUCH DEVICES (Android, Tablets, iOS):
-   Never hide buttons into an unclickable deadlock!
-   Dims gracefully to 0.55 opacity, staying 100% visible and tapable.
-   ============================================================ */
-@media (hover: none), (pointer: coarse) {
-  #player-stage.user-idle {
-    cursor: default;
-  }
-
-  #player-stage.user-idle .player-action-cluster {
-    opacity: 0.55;
-    visibility: visible;
-    pointer-events: auto;
-  }
 }
 
 .action-btn {
@@ -196,8 +179,8 @@ iframe {
 #side-panel {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
-  height: 100vh;
-  max-height: 100vh;
+  height: 100%;
+  max-height: 100%;
   background: var(--sidebar-bg);
   border-left: 1px solid var(--border-color);
   display: flex;
@@ -273,7 +256,7 @@ iframe {
 /* Scrollable Sidebar Content Area */
 .sidebar-content {
   flex: 1 1 auto;
-  min-height: 0; /* CRITICAL: Enables flex child vertical scrolling */
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 14px;
@@ -285,7 +268,6 @@ iframe {
   scrollbar-color: #334155 transparent;
 }
 
-/* Custom dark scrollbar */
 .sidebar-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -507,7 +489,7 @@ iframe {
   color: #f1f5f9;
 }
 
-/* Full-width single-column layout for clean, un-crammed sliders */
+/* Full-width clean controls */
 .settings-body {
   padding: 14px;
   border-top: 1px solid var(--border-color);
@@ -588,16 +570,8 @@ input[type="range"] {
   width: 100%;
 }
 
-/* ============================================================
-   MOBILE PHONES ONLY (<= 480px wide):
-   Transforms sidebar into an Overlay Drawer only on actual phone widths.
-   ============================================================ */
+/* Mobile Phones (<= 480px) */
 @media (max-width: 480px) {
-  #player-stage {
-    width: 100%;
-  }
-
-  /* Overlay Drawer */
   #side-panel {
     position: fixed;
     top: 0;
@@ -605,19 +579,19 @@ input[type="range"] {
     bottom: 0;
     width: min(320px, 86vw);
     min-width: 0;
-    height: 100vh;
+    height: 100%;
+    height: var(--app-height, 100dvh);
     box-shadow: -6px 0 24px rgba(0, 0, 0, 0.85);
     z-index: 50;
   }
 
-  /* Dim backdrop when drawer is open on phones */
   .sidebar-backdrop {
     display: block;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(2px);
-    z-index: 40;
+    z-index: 45;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
